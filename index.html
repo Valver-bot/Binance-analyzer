@@ -1288,7 +1288,7 @@
     </div>
 
     <script>
-        // Advanced Binance Dashboard with Smart Notifications
+        // Advanced Binance Dashboard with Improved Error Handling and Data Updates
         class AdvancedBinanceDashboard {
             constructor() {
                 this.currentSymbol = 'BTCUSDT';
@@ -1311,13 +1311,15 @@
                     asks: false
                 };
                 this.leadersUpdateInterval = null;
+                this.apiRetryCount = 0;
+                this.maxApiRetries = 3;
                 
                 // Smart Notification System
                 this.notificationHistory = [];
                 this.lastNotificationTime = 0;
                 this.alertedOrders = new Set();
                 
-                // Оптимальные настройки для внутридневной торговли
+                // Settings for intraday trading
                 this.settings = {
                     autoRefresh: true,
                     refreshInterval: 10000,
@@ -1335,10 +1337,10 @@
                     massiveOnly: false
                 };
 
-                // Увеличиваем дистанцию для внутридневной торговли (не скальпинг)
+                // Increased distance for intraday trading (not scalping)
                 this.filters = {
-                    minVolume: 15000, // Повышаем минимальный объем
-                    maxDistancePercent: 3.0 // Увеличиваем дистанцию до 3%
+                    minVolume: 15000, // Increased minimum volume
+                    maxDistancePercent: 3.0 // Increased distance to 3%
                 };
 
                 this.setupEventListeners();
@@ -1587,6 +1589,9 @@
                         this.history.shift();
                     }
                     
+                    // Reset retry counter on successful fetch
+                    this.apiRetryCount = 0;
+                    
                 } catch (error) {
                     console.error('Error fetching order book:', error);
                     this.handleOrderBookError(error, symbol);
@@ -1671,7 +1676,7 @@
                 document.getElementById('info-connection').textContent = this.isConnected ? 'Connected' : 'Disconnected';
             }
 
-            updateOrderList(type, orders, maxVolume, container) {
+            updateOrderList(type, orders, maxVolume) {
                 const listElement = document.getElementById(`${type}-list`);
                 const updateInfoElement = document.getElementById(`${type}-update-info`);
                 
@@ -1782,6 +1787,7 @@
             }
 
             updateStatistics() {
+                // Исправление: обновляем статистику при каждом обновлении UI
                 document.getElementById('total-bids').textContent = this.filteredBids.length;
                 document.getElementById('total-asks').textContent = this.filteredAsks.length;
                 
@@ -2054,6 +2060,19 @@
             }
 
             handleOrderBookError(error, symbol) {
+                // Исправление: уменьшаем частоту уведомлений об ошибках
+                if (this.apiRetryCount < this.maxApiRetries) {
+                    this.apiRetryCount++;
+                    console.warn(`API retry ${this.apiRetryCount}/${this.maxApiRetries} for ${symbol}`);
+                    
+                    // Retry after a delay
+                    setTimeout(() => {
+                        this.fetchOrderBook(symbol);
+                    }, 2000 * this.apiRetryCount);
+                    
+                    return;
+                }
+                
                 if (error.name === 'AbortError') {
                     this.showSmartNotification(
                         'Request Timeout',
@@ -2067,11 +2086,14 @@
                         'error'
                     );
                 } else {
-                    this.showSmartNotification(
-                        'Network Error',
-                        'Using mock data due to network issues',
-                        'warning'
-                    );
+                    // Исправление: показываем уведомление только при полном отказе
+                    if (this.apiRetryCount >= this.maxApiRetries) {
+                        this.showSmartNotification(
+                            'Network Error',
+                            'Using mock data due to network issues',
+                            'warning'
+                        );
+                    }
                     this.useMockData();
                 }
             }
