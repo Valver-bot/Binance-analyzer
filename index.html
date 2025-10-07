@@ -2005,6 +2005,15 @@
             switchSymbol(symbol) {
                 if (this.currentSymbol === symbol) return;
                 
+                // Сбрасываем данные перед загрузкой новых
+                this.bids = [];
+                this.asks = [];
+                this.largeBids = [];
+                this.largeAsks = [];
+                this.filteredBids = [];
+                this.filteredAsks = [];
+                this.currentPrice = 0;
+                
                 // Показываем индикатор загрузки
                 document.querySelectorAll('.panel-content').forEach(panel => {
                     panel.innerHTML = '<div class="loading-spinner"></div>';
@@ -2021,7 +2030,7 @@
                 }
                 
                 this.renderLeaders();
-                this.fetchOrderBook(symbol);
+                this.fetchOrderBook(symbol); // Загружаем новые данные
                 
                 this.showSmartNotification(
                     'Symbol Changed',
